@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<title>Xarajatlar va Kirimlar Trekeri</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { font-size: 16px; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh; padding: 12px; color: #333; overflow-x: hidden;
+  }
+  .container { max-width: 1200px; margin: 0 auto; width: 100%; }
+  h1 {
+    text-align: center; color: #fff; margin-bottom: 16px;
+    font-size: clamp(1.2rem, 4vw, 2rem);
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3); line-height: 1.2;
+  }
+  h3 { margin-bottom: 12px; color: #444; font-size: clamp(0.95rem, 2.5vw, 1.15rem); }
+  .card {
+    background: #fff; border-radius: 14px; padding: 14px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15); margin-bottom: 14px;
+  }
+  .form-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px; align-items: end;
+  }
+  .form-group { display: flex; flex-direction: column; }
+  label { font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; color: #555; }
+  input, select {
+    padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;
+    font-size: 0.95rem; transition: border 0.2s; width: 100%; min-width: 0; background: #fff;
+  }
+  input:focus, select:focus { outline: none; border-color: #667eea; }
+  button {
+    padding: 10px 16px; background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff; border: none; border-radius: 8px; cursor: pointer;
+    font-weight: 600; font-size: 0.95rem; transition: transform 0.15s; width: 100%;
+  }
+  button:hover { transform: translateY(-1px); }
+  button:active { transform: translateY(0); }
+  .btn-del { background: #e74c3c; padding: 6px 10px; font-size: 0.75rem; width: auto; border-radius: 6px; }
+
+  .stats {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px; margin-bottom: 14px;
+  }
+  .stat-box {
+    background: #fff; border-radius: 14px; padding: 14px; text-align: center;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+  }
+  .stat-box .value {
+    font-size: clamp(1rem, 3.5vw, 1.5rem); font-weight: bold;
+    color: #764ba2; word-break: break-word;
+  }
+  .stat-box .label { font-size: clamp(0.7rem, 2vw, 0.85rem); color: #777; margin-top: 4px; }
+  .stat-box.income .value { color: #27ae60; }
+  .stat-box.expense .value { color: #e74c3c; }
+  .stat-box.balance .value { color: #2980b9; }
+
+  .cat-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;
+  }
+  .cat-card {
+    background: #fff; border-radius: 12px; padding: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-left: 5px solid #667eea;
+    transition: transform 0.15s;
+  }
+  .cat-card .cat-name {
+    font-size: 0.8rem; color: #666; font-weight: 600;
+    display: flex; justify-content: space-between; align-items: center; gap: 6px;
+  }
+  .cat-card .cat-name span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cat-card .cat-value {
+    font-size: clamp(0.9rem, 2.8vw, 1.2rem); font-weight: bold; color: #333;
+    margin-top: 6px; word-break: break-word;
+  }
+  .cat-card .cat-percent { font-size: 0.7rem; color: #999; margin-top: 2px; }
+
+  .table-wrap {
+    width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 8px;
+  }
+  table { width: 100%; border-collapse: collapse; min-width: 500px; }
+  th, td {
+    padding: 10px 8px; text-align: left; border-bottom: 1px solid #eee;
+    font-size: clamp(0.75rem, 2vw, 0.9rem); white-space: nowrap;
+  }
+  th { background: #f8f9ff; color: #555; font-weight: 600; }
+  tr:hover { background: #fafbff; }
+  .badge {
+    display: inline-block; padding: 3px 8px; border-radius: 20px;
+    font-size: 0.7rem; font-weight: 600; color: #fff; white-space: nowrap;
+  }
+
+  /* ==== TABLAR ==== */
+  .tab-btns {
+    display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;
+    overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px;
+  }
+  .tab-btns button {
+    background: #eee; color: #555; flex: 0 0 auto; min-width: auto;
+    padding: 8px 12px; font-size: clamp(0.72rem, 2vw, 0.85rem); white-space: nowrap;
+  }
+  .tab-btns button.active {
+    background: linear-gradient(135deg, #667eea, #764ba2); color: #fff;
+  }
+
+  .type-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+  .type-tabs button {
+    background: #eee; color: #555; flex: 1; padding: 10px;
+    font-size: clamp(0.8rem, 2.2vw, 0.95rem);
+  }
+  .type-tabs button.active { background: linear-gradient(135deg, #27ae60, #2ecc71); color: #fff; }
+  .type-tabs button.active.expense { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+
+  /* ==== DIAGRAMMA TURINI TANLASH ==== */
+  .chart-type-selector {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 12px; padding: 8px 10px;
+    background: #f5f6ff; border-radius: 10px;
+    flex-wrap: wrap;
+  }
+  .chart-type-selector label {
+    font-size: 0.8rem; font-weight: 600; color: #555;
+    margin: 0; white-space: nowrap;
+  }
+  .chart-type-selector select {
+    padding: 8px 10px; border: 2px solid #d0d5f0; border-radius: 8px;
+    font-size: 0.85rem; background: #fff; cursor: pointer;
+    flex: 1; min-width: 140px;
+  }
+  .chart-type-selector select:focus { border-color: #667eea; }
+  .chart-type-selector .info-icon {
+    font-size: 0.75rem; color: #888; font-style: italic;
+  }
+
+  /* ==== DIAGRAMMA ==== */
+  .chart-wrap {
+    position: relative; width: 100%;
+    height: clamp(280px, 55vw, 420px);
+    transition: height 0.3s;
+  }
+  .chart-wrap canvas { display: block; max-width: 100%; max-height: 100%; }
+
+  .note-analysis {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px;
+  }
+  .note-card {
+    background: #fff; border-radius: 12px; padding: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-left: 5px solid #667eea;
+  }
+  .note-card .note-title {
+    font-size: 0.9rem; font-weight: 600; color: #333;
+    margin-bottom: 8px; word-break: break-word;
+  }
+  .note-card .note-stats {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+    font-size: 0.78rem; color: #666;
+  }
+  .note-card .note-stats strong { color: #333; display: block; margin-top: 2px; }
+
+  .empty { text-align: center; padding: 24px; color: #999; font-size: 0.9rem; }
+
+  @media (max-width: 480px) {
+    body { padding: 8px; }
+    .card { padding: 12px; border-radius: 12px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .cat-grid { grid-template-columns: repeat(2, 1fr); }
+    .chart-wrap { height: clamp(260px, 75vw, 340px); }
+    .note-analysis { grid-template-columns: 1fr; }
+    .chart-type-selector { gap: 6px; padding: 6px 8px; }
+    .chart-type-selector label { font-size: 0.72rem; }
+    .chart-type-selector select { font-size: 0.78rem; padding: 6px 8px; }
+  }
+  @media (max-width: 360px) {
+    .stats { grid-template-columns: 1fr; }
+    .cat-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-height: 500px) and (orientation: landscape) {
+    .chart-wrap { height: 240px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>💰 Xarajatlar va Kirimlar Trekeri</h1>
+
+  <div class="stats">
+    <div class="stat-box income"><div class="value" id="statIncome">0</div><div class="label">💵 Kirim</div></div>
+    <div class="stat-box expense"><div class="value" id="statExpense">0</div><div class="label">💸 Xarajat</div></div>
+    <div class="stat-box balance"><div class="value" id="statBalance">0</div><div class="label">⚖️ Balans</div></div>
+    <div class="stat-box"><div class="value" id="statMonth">0</div><div class="label">📅 Bu oylik xarajat</div></div>
+  </div>
+
+  <!-- Forma -->
+  <div class="card">
+    <div class="type-tabs">
+      <button class="active expense" id="tabExpense" onclick="setType('expense')">💸 Xarajat</button>
+      <button id="tabIncome" onclick="setType('income')">💵 Kirim</button>
+    </div>
+    <h3 id="formTitle">➕ Yangi xarajat qo'shish</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>Sana</label><input type="date" id="inpDate"></div>
+      <div class="form-group"><label>Izoh / nomi</label><input type="text" id="inpName" placeholder="Elektr to'lovi"></div>
+      <div class="form-group"><label>Summa (so'm)</label><input type="number" id="inpAmount" placeholder="50000" min="0" inputmode="numeric"></div>
+      <div class="form-group"><label>Kategoriya</label><select id="inpCat"></select></div>
+      <button onclick="addEntry()" id="addBtn">Xarajat qo'shish</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>📂 Kategoriyalar (joriy oy xarajatlari)</h3>
+    <div class="cat-grid" id="catGrid"></div>
+  </div>
+
+  <div class="card">
+    <h3>🔍 Har bir izoh bo'yicha muddat tahlili</h3>
+    <div class="note-analysis" id="noteAnalysis"></div>
+    <div class="empty" id="noteEmpty" style="display:none;">Hozircha izohlar yo'q</div>
+  </div>
+
+  <!-- Diagrammalar -->
+  <div class="card">
+    <div class="tab-btns" id="tabBtns">
+      <button class="active" onclick="showTab('daily', this)">📅 Kunlik</button>
+      <button onclick="showTab('monthly', this)">📆 Oylik</button>
+      <button onclick="showTab('yearly', this)">📈 Yillik</button>
+      <button onclick="showTab('category', this)">🏷️ Kategoriya</button>
+      <button onclick="showTab('catMonthly', this)">📊 Oylik+Kategoriya</button>
+      <button onclick="showTab('notes', this)">📝 Izohlar</button>
+      <button onclick="showTab('notesMonthly', this)">📝 Izohlar+Oylik</button>
+      <button onclick="showTab('noteTimeline', this)">📅 Izoh dinamikasi</button>
+    </div>
+
+    <!-- YANGI: Diagramma turini tanlash -->
+    <div class="chart-type-selector">
+      <label>📊 Diagramma turi:</label>
+      <select id="chartTypeSelect" onchange="changeChartType()">
+        <option value="auto">🔄 Avtomatik</option>
+        <option value="bar">📊 Ustunli (Bar)</option>
+        <option value="line">📈 Chiziqli (Line)</option>
+        <option value="doughnut">🍩 Doiraviy (Doughnut)</option>
+        <option value="pie">🥧 Pie</option>
+        <option value="polarArea">🎯 Polar Area</option>
+        <option value="radar">🕸️ Radar</option>
+        <option value="horizontalBar">📋 Gorizontal</option>
+      </select>
+      <span class="info-icon" id="chartTypeHint">Tanlangan tab uchun mos tur</span>
+    </div>
+
+    <div class="chart-wrap">
+      <canvas id="mainChart"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>📋 Barcha yozuvlar</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Sana</th><th>Izoh</th><th>Kategoriya</th><th>Turi</th><th>Summa</th><th></th></tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="emptyMsg" style="display:none;">Hozircha yozuvlar yo'q</div>
+  </div>
+</div>
+
+<script>
+// ============ MA'LUMOTLAR ============
+let entries = JSON.parse(localStorage.getItem('financeTracker') || '[]');
+if (entries.length === 0) {
+  const old = JSON.parse(localStorage.getItem('mangaExpenses') || '[]');
+  if (old.length > 0) {
+    entries = old.map(e => ({ ...e, type: 'expense' }));
+    localStorage.setItem('financeTracker', JSON.stringify(entries));
+  }
+}
+
+let chart = null;
+let currentTab = 'daily';
+let currentType = 'expense';
+let selectedChartType = 'auto';
+
+// Diagramma turlari tavsifi
+const CHART_TYPE_NAMES = {
+  auto: '🔄 Avtomatik',
+  bar: '📊 Ustunli',
+  line: '📈 Chiziqli',
+  doughnut: '🍩 Doiraviy',
+  pie: '🥧 Pie',
+  polarArea: '🎯 Polar Area',
+  radar: '🕸️ Radar',
+  horizontalBar: '📋 Gorizontal'
+};
+
+// Qaysi tabda qaysi turlar mantiqiy
+const TAB_COMPATIBLE_TYPES = {
+  daily: ['bar', 'line', 'radar'],
+  monthly: ['bar', 'line', 'radar'],
+  yearly: ['bar', 'line', 'radar', 'pie', 'doughnut'],
+  category: ['doughnut', 'pie', 'polarArea', 'bar', 'horizontalBar', 'radar'],
+  catMonthly: ['bar', 'line', 'radar'],
+  notes: ['horizontalBar', 'bar', 'pie', 'doughnut', 'polarArea'],
+  notesMonthly: ['bar', 'line', 'radar'],
+  noteTimeline: ['line', 'bar', 'radar']
+};
+
+const INCOME_CATS = ["Ish haqi", "Bonus", "Sovg'a", "Boshqa kirim"];
+const EXPENSE_CATS = ["Kommunal", "Shaxsiy", "Uy-ro'zg'or", "Oziq-ovqat", "Transport", "Manga", "Ta'lim", "Boshqa"];
+
+const CAT_COLORS = {
+  "Kommunal": "#e74c3c", "Shaxsiy": "#9b59b6", "Uy-ro'zg'or": "#3498db",
+  "Oziq-ovqat": "#2ecc71", "Transport": "#f39c12", "Manga": "#e91e63",
+  "Ta'lim": "#1abc9c", "Boshqa": "#95a5a6", "Ish haqi": "#27ae60",
+  "Bonus": "#16a085", "Sovg'a": "#8e44ad", "Boshqa kirim": "#2980b9"
+};
+
+const NOTE_PALETTE = [
+  '#e74c3c', '#9b59b6', '#3498db', '#2ecc71', '#f39c12',
+  '#e91e63', '#1abc9c', '#95a5a6', '#27ae60', '#2980b9',
+  '#d35400', '#c0392b', '#8e44ad', '#16a085', '#f1c40f',
+  '#ff5733', '#33ff57', '#3357ff', '#ff33f1', '#33fff5'
+];
+
+document.getElementById('inpDate').valueAsDate = new Date();
+
+// ============ YORDAMCHI ============
+function save() { localStorage.setItem('financeTracker', JSON.stringify(entries)); }
+function fmt(n) { return new Intl.NumberFormat('uz-UZ').format(Math.round(n)) + " so'm"; }
+function fmtShort(n) {
+  n = Number(n) || 0;
+  const abs = Math.abs(n);
+  const sign = n < 0 ? '-' : '';
+  if (abs >= 1e9) return sign + (abs/1e9).toFixed(1) + ' mlrd';
+  if (abs >= 1e6) return sign + (abs/1e6).toFixed(1) + ' mln';
+  if (abs >= 1e3) return sign + Math.round(abs/1e3) + 'k';
+  return sign + abs.toString();
+}
+function fmtCompact(n) {
+  n = Number(n) || 0;
+  if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n/1e3).toFixed(0) + 'K';
+  return Math.round(n).toString();
+}
+
+// ============ TURNI TANLASH ============
+function setType(t) {
+  currentType = t;
+  const expBtn = document.getElementById('tabExpense');
+  const incBtn = document.getElementById('tabIncome');
+  const formTitle = document.getElementById('formTitle');
+  const catSel = document.getElementById('inpCat');
+  const addBtn = document.getElementById('addBtn');
+
+  expBtn.classList.remove('active', 'expense');
+  incBtn.classList.remove('active', 'expense');
+
+  if (t === 'expense') {
+    expBtn.classList.add('active', 'expense');
+    formTitle.textContent = "➕ Yangi xarajat qo'shish";
+    addBtn.textContent = "Xarajat qo'shish";
+    catSel.innerHTML = EXPENSE_CATS.map(c => `<option value="${c}">${c}</option>`).join('');
+  } else {
+    incBtn.classList.add('active');
+    formTitle.textContent = "➕ Yangi kirim qo'shish";
+    addBtn.textContent = "Kirim qo'shish";
+    catSel.innerHTML = INCOME_CATS.map(c => `<option value="${c}">${c}</option>`).join('');
+  }
+}
+
+// ============ QO'SHISH / O'CHIRISH ============
+function addEntry() {
+  const date = document.getElementById('inpDate').value;
+  const name = document.getElementById('inpName').value.trim();
+  const amount = parseFloat(document.getElementById('inpAmount').value);
+  const cat = document.getElementById('inpCat').value;
+
+  if (!date || !name || !amount || amount <= 0) {
+    alert("Iltimos, barcha maydonlarni to'g'ri to'ldiring!");
+    return;
+  }
+
+  entries.push({ id: Date.now(), date, name, amount, cat, type: currentType });
+  save(); render();
+
+  document.getElementById('inpName').value = '';
+  document.getElementById('inpAmount').value = '';
+}
+
+function deleteEntry(id) {
+  if (!confirm("O'chirishni tasdiqlaysizmi?")) return;
+  entries = entries.filter(e => e.id !== id);
+  save(); render();
+}
+
+// ============ STATISTIKA ============
+function updateStats() {
+  const now = new Date();
+  const curYear = now.getFullYear();
+  const curMonth = now.getMonth();
+
+  let income = 0, expense = 0, monthExpense = 0;
+  entries.forEach(e => {
+    const amt = Number(e.amount) || 0;
+    if (e.type === 'income') income += amt;
+    else expense += amt;
+
+    const d = new Date(e.date);
+    if (d.getFullYear() === curYear && d.getMonth() === curMonth && e.type !== 'income') {
+      monthExpense += amt;
+    }
+  });
+
+  document.getElementById('statIncome').textContent = fmtShort(income);
+  document.getElementById('statExpense').textContent = fmtShort(expense);
+  document.getElementById('statBalance').textContent = fmtShort(income - expense);
+  document.getElementById('statMonth').textContent = fmtShort(monthExpense);
+}
+
+// ============ KATEGORIYA KARTOCHKALARI ============
+function renderCategoryCards() {
+  const now = new Date();
+  const curYear = now.getFullYear();
+  const curMonth = now.getMonth();
+  const monthByCat = {};
+  let monthTotal = 0;
+
+  entries.forEach(e => {
+    if (e.type === 'income') return;
+    const d = new Date(e.date);
+    if (d.getFullYear() === curYear && d.getMonth() === curMonth) {
+      monthByCat[e.cat] = (monthByCat[e.cat] || 0) + (Number(e.amount) || 0);
+      monthTotal += Number(e.amount) || 0;
+    }
+  });
+
+  const grid = document.getElementById('catGrid');
+  grid.innerHTML = '';
+
+  EXPENSE_CATS.forEach(cat => {
+    const sum = monthByCat[cat] || 0;
+    const percent = monthTotal > 0 ? ((sum / monthTotal) * 100).toFixed(1) : 0;
+    const div = document.createElement('div');
+    div.className = 'cat-card';
+    div.style.borderLeftColor = CAT_COLORS[cat] || '#95a5a6';
+    div.innerHTML = `
+      <div class="cat-name"><span>${cat}</span><span style="color:${CAT_COLORS[cat] || '#95a5a6'};">●</span></div>
+      <div class="cat-value">${fmtShort(sum)}</div>
+      <div class="cat-percent">${percent}%</div>
+    `;
+    grid.appendChild(div);
+  });
+}
+
+// ============ IZOH TAHLILI ============
+function renderNoteAnalysis() {
+  const container = document.getElementById('noteAnalysis');
+  const empty = document.getElementById('noteEmpty');
+  container.innerHTML = '';
+
+  const noteMap = {};
+  entries.forEach(e => {
+    const key = e.type + '::' + e.name;
+    if (!noteMap[key]) {
+      noteMap[key] = { name: e.name, type: e.type, total: 0, count: 0,
+        minDate: null, maxDate: null, last30: 0, firstDate: null };
+    }
+    const amt = Number(e.amount) || 0;
+    noteMap[key].total += amt;
+    noteMap[key].count += 1;
+    const d = new Date(e.date);
+    if (!noteMap[key].minDate || d < noteMap[key].minDate) {
+      noteMap[key].minDate = d;
+      noteMap[key].firstDate = e.date;
+    }
+    if (!noteMap[key].maxDate || d > noteMap[key].maxDate) noteMap[key].maxDate = d;
+    const daysAgo = (new Date() - d) / (1000 * 60 * 60 * 24);
+    if (daysAgo <= 30 && daysAgo >= 0) noteMap[key].last30 += amt;
+  });
+
+  const list = Object.values(noteMap);
+  if (list.length === 0) { empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  list.sort((a, b) => b.total - a.total);
+
+  list.forEach((n, i) => {
+    const color = n.type === 'income' ? '#27ae60' : (NOTE_PALETTE[i % NOTE_PALETTE.length]);
+    const days = Math.max(1, Math.ceil((n.maxDate - n.minDate) / (1000 * 60 * 60 * 24)) + 1);
+    const avgPerDay = n.total / days;
+    const avgPerEntry = n.total / n.count;
+
+    const div = document.createElement('div');
+    div.className = 'note-card';
+    div.style.borderLeftColor = color;
+    div.innerHTML = `
+      <div class="note-title">${n.type === 'income' ? '💵' : '💸'} ${n.name}</div>
+      <div class="note-stats">
+        <div>Jami:<strong>${fmtShort(n.total)}</strong></div>
+        <div>Soni:<strong>${n.count} ta</strong></div>
+        <div>O'rtacha/kun:<strong>${fmtShort(avgPerDay)}</strong></div>
+        <div>O'rtacha/xarid:<strong>${fmtShort(avgPerEntry)}</strong></div>
+        <div>Boshlanish:<strong>${n.firstDate}</strong></div>
+        <div>Oxirgi 30 kun:<strong>${fmtShort(n.last30)}</strong></div>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// ============ JADVAL ============
+function renderTable() {
+  const tbody = document.getElementById('tableBody');
+  const empty = document.getElementById('emptyMsg');
+  tbody.innerHTML = '';
+  const sorted = [...entries].sort((a, b) => new Date(b.date) - new Date(a.date));
+  if (sorted.length === 0) { empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  sorted.forEach(e => {
+    const color = CAT_COLORS[e.cat] || '#95a5a6';
+    const isIncome = e.type === 'income';
+    const typeBadge = isIncome
+      ? '<span class="badge" style="background:#27ae60;">💵 Kirim</span>'
+      : '<span class="badge" style="background:#e74c3c;">💸 Xarajat</span>';
+    const amountColor = isIncome ? '#27ae60' : '#e74c3c';
+    const sign = isIncome ? '+' : '-';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${e.date}</td><td>${e.name}</td>
+      <td><span class="badge" style="background:${color};">${e.cat}</span></td>
+      <td>${typeBadge}</td>
+      <td><strong style="color:${amountColor};">${sign}${fmtShort(e.amount)}</strong></td>
+      <td><button class="btn-del" onclick="deleteEntry(${e.id})">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function getNoteColorMap() {
+  const notes = [...new Set(entries.map(e => e.name))];
+  const map = {};
+  notes.forEach((n, i) => { map[n] = NOTE_PALETTE[i % NOTE_PALETTE.length]; });
+  return map;
+}
+
+// ============ DIAGRAMMA MA'LUMOTLARI ============
+const MONTHS = ['Yan','Fev','Mar','Apr','May','Iyn','Iyl','Avg','Sen','Okt','Noy','Dek'];
+
+function getChartData(tab) {
+  const now = new Date();
+
+  if (tab === 'daily') {
+    const labels = [], incomeData = [], expenseData = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now); d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      labels.push(d.getDate() + '/' + (d.getMonth() + 1));
+      let inc = 0, exp = 0;
+      entries.forEach(e => {
+        if (e.date === key) {
+          if (e.type === 'income') inc += Number(e.amount) || 0;
+          else exp += Number(e.amount) || 0;
+        }
+      });
+      incomeData.push(inc); expenseData.push(exp);
+    }
+    return {
+      type: 'multi', labels,
+      datasets: [
+        { label: '💵 Kirim', data: incomeData, color: '#27ae60' },
+        { label: '💸 Xarajat', data: expenseData, color: '#e74c3c' }
+      ]
+    };
+  }
+
+  if (tab === 'monthly') {
+    const year = now.getFullYear();
+    const incData = Array(12).fill(0), expData = Array(12).fill(0);
+    entries.forEach(e => {
+      const d = new Date(e.date);
+      if (d.getFullYear() === year) {
+        if (e.type === 'income') incData[d.getMonth()] += Number(e.amount) || 0;
+        else expData[d.getMonth()] += Number(e.amount) || 0;
+      }
+    });
+    return {
+      type: 'multi', labels: MONTHS,
+      datasets: [
+        { label: year + ' 💵', data: incData, color: '#27ae60' },
+        { label: year + ' 💸', data: expData, color: '#e74c3c' }
+      ]
+    };
+  }
+
+  if (tab === 'yearly') {
+    const yearMap = {};
+    entries.forEach(e => {
+      const y = new Date(e.date).getFullYear();
+      if (!yearMap[y]) yearMap[y] = { inc: 0, exp: 0 };
+      if (e.type === 'income') yearMap[y].inc += Number(e.amount) || 0;
+      else yearMap[y].exp += Number(e.amount) || 0;
+    });
+    const years = Object.keys(yearMap).sort();
+    return {
+      type: 'multi', labels: years,
+      datasets: [
+        { label: '💵 Kirim', data: years.map(y => yearMap[y].inc), color: '#27ae60' },
+        { label: '💸 Xarajat', data: years.map(y => yearMap[y].exp), color: '#e74c3c' }
+      ]
+    };
+  }
+
+  if (tab === 'category') {
+    const catMap = {};
+    entries.forEach(e => {
+      if (e.type === 'income') return;
+      const c = e.cat || 'Boshqa';
+      catMap[c] = (catMap[c] || 0) + (Number(e.amount) || 0);
+    });
+    const cats = Object.keys(catMap);
+    if (cats.length === 0) return { type: 'empty', message: "Xarajatlar yo'q" };
+    return {
+      type: 'single', labels: cats,
+      data: cats.map(c => catMap[c]),
+      colors: cats.map(c => CAT_COLORS[c] || '#95a5a6')
+    };
+  }
+
+  if (tab === 'catMonthly') {
+    const year = now.getFullYear();
+    const cats = EXPENSE_CATS;
+    const datasets = cats.map(cat => ({
+      label: cat, data: Array(12).fill(0),
+      color: CAT_COLORS[cat] || '#95a5a6'
+    }));
+    entries.forEach(e => {
+      if (e.type === 'income') return;
+      const d = new Date(e.date);
+      if (d.getFullYear() === year) {
+        const idx = cats.indexOf(e.cat);
+        if (idx !== -1) datasets[idx].data[d.getMonth()] += Number(e.amount) || 0;
+      }
+    });
+    const filtered = datasets.filter(ds => ds.data.some(v => v > 0));
+    if (filtered.length === 0) return { type: 'empty', message: "Bu yil xarajatlar yo'q" };
+    return { type: 'multi', labels: MONTHS, datasets: filtered };
+  }
+
+  if (tab === 'notes') {
+    const noteMap = {};
+    entries.forEach(e => {
+      const key = (e.type === 'income' ? '💵 ' : '💸 ') + e.name;
+      noteMap[key] = (noteMap[key] || 0) + (Number(e.amount) || 0);
+    });
+    const notes = Object.keys(noteMap);
+    if (notes.length === 0) return { type: 'empty', message: "Yozuvlar yo'q" };
+    const sorted = notes.sort((a, b) => noteMap[b] - noteMap[a]).slice(0, 12);
+    return {
+      type: 'single',
+      labels: sorted.map(n => n.length > 22 ? n.slice(0, 22) + '…' : n),
+      data: sorted.map(n => noteMap[n]),
+      colors: sorted.map(n => n.startsWith('💵') ? '#27ae60' : '#e74c3c')
+    };
+  }
+
+  if (tab === 'notesMonthly') {
+    const year = now.getFullYear();
+    const noteMap = {};
+    entries.forEach(e => {
+      if (e.type === 'income') return;
+      const d = new Date(e.date);
+      if (d.getFullYear() !== year) return;
+      if (!noteMap[e.name]) noteMap[e.name] = Array(12).fill(0);
+      noteMap[e.name][d.getMonth()] += Number(e.amount) || 0;
+    });
+    const notes = Object.keys(noteMap);
+    if (notes.length === 0) return { type: 'empty', message: "Bu yil xarajatlar yo'q" };
+    const totals = notes.map(n => ({ n, sum: noteMap[n].reduce((a, b) => a + b, 0) }));
+    totals.sort((a, b) => b.sum - a.sum);
+    const top = totals.slice(0, 6).map(t => t.n);
+    const colorMap = getNoteColorMap();
+    return {
+      type: 'multi', labels: MONTHS,
+      datasets: top.map(n => ({
+        label: n.length > 16 ? n.slice(0, 16) + '…' : n,
+        data: noteMap[n],
+        color: colorMap[n] || '#667eea'
+      }))
+    };
+  }
+
+  if (tab === 'noteTimeline') {
+    const months = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({
+        key: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'),
+        label: MONTHS[d.getMonth()] + ' ' + d.getFullYear().toString().slice(2)
+      });
+    }
+    const noteMap = {};
+    entries.forEach(e => {
+      const d = new Date(e.date);
+      const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      if (!months.find(m => m.key === key)) return;
+      const noteKey = (e.type === 'income' ? '💵 ' : '💸 ') + e.name;
+      if (!noteMap[noteKey]) noteMap[noteKey] = {};
+      noteMap[noteKey][key] = (noteMap[noteKey][key] || 0) + (Number(e.amount) || 0);
+    });
+    const noteKeys = Object.keys(noteMap);
+    if (noteKeys.length === 0) return { type: 'empty', message: "Ma'lumot yo'q" };
+    const totals = noteKeys.map(k => ({
+      k, sum: months.reduce((s, m) => s + (noteMap[k][m.key] || 0), 0)
+    }));
+    totals.sort((a, b) => b.sum - a.sum);
+    const top = totals.slice(0, 5).map(t => t.k);
+    const colorMap = getNoteColorMap();
+    return {
+      type: 'multi',
+      labels: months.map(m => m.label),
+      datasets: top.map(n => ({
+        label: n.length > 16 ? n.slice(0, 16) + '…' : n,
+        data: months.map(m => noteMap[n][m.key] || 0),
+        color: n.startsWith('💵') ? '#27ae60' : (colorMap[n.replace(/^[💵💸]\s*/, '')] || '#667eea')
+      }))
+    };
+  }
+
+  return { type: 'empty', message: "Ma'lumot yo'q" };
+}
+
+// ============ DIAGRAMMA CHIZISH ============
+function getEffectiveChartType(info) {
+  if (selectedChartType !== 'auto') return selectedChartType;
+  // Avtomatik: tabga mos tur
+  if (info.type === 'single') return 'doughnut';
+  if (info.type === 'multi') {
+    if (currentTab === 'noteTimeline') return 'line';
+    if (info.datasets.length > 1) return 'bar';
+    return 'line';
+  }
+  return 'bar';
+}
+
+function updateChartTypeHint() {
+  const hint = document.getElementById('chartTypeHint');
+  const compatible = TAB_COMPATIBLE_TYPES[currentTab] || [];
+  if (selectedChartType === 'auto') {
+    hint.textContent = 'Avto: ' + (compatible.length > 0 ? compatible.slice(0, 3).join(', ') : 'bar');
+  } else {
+    const ok = compatible.includes(selectedChartType);
+    hint.textContent = ok ? '✓ Mos' : '⚠️ Bu tab uchun avtomatik bar ishlatiladi';
+    hint.style.color = ok ? '#27ae60' : '#e67e22';
+  }
+}
+
+function changeChartType() {
+  selectedChartType = document.getElementById('chartTypeSelect').value;
+  updateChartTypeHint();
+  renderChart();
+}
+
+function renderChart() {
+  const info = getChartData(currentTab);
+  const ctx = document.getElementById('mainChart').getContext('2d');
+  if (chart) { chart.destroy(); chart = null; }
+
+  if (info.type === 'empty') {
+    chart = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: [info.message], datasets: [{ data: [0], backgroundColor: '#eee' }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { display: false }, x: { grid: { display: false } } }
+      }
+    });
+    return;
+  }
+
+  let chartType = getEffectiveChartType(info);
+  let compatible = TAB_COMPATIBLE_TYPES[currentTab] || [];
+  // Agar tanlangan tur mos kelmasa, avto ishlatamiz
+  if (selectedChartType !== 'auto' && !compatible.includes(selectedChartType)) {
+    chartType = getEffectiveChartType({ type: info.type });
+  }
+
+  // ==== SINGLE (kategoriya, izohlar) ====
+  if (info.type === 'single') {
+    // Pie/Doughnut/PolarArea uchun maxsus
+    if (['pie', 'doughnut', 'polarArea'].includes(chartType)) {
+      chart = new Chart(ctx, {
+        type: chartType,
+        data: {
+          labels: info.labels,
+          datasets: [{
+            data: info.data,
+            backgroundColor: info.colors,
+            borderColor: '#fff', borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+            tooltip: { callbacks: { label: c => ' ' + fmt(c.parsed.r || c.parsed) } }
+          }
+        }
+      });
+      return;
+    }
+
+    // Bar/horizontalBar/line/radar uchun bitta dataset
+    const isHorizontal = chartType === 'horizontalBar';
+    chart = new Chart(ctx, {
+      type: isHorizontal ? 'bar' : chartType,
+      data: {
+        labels: info.labels,
+        datasets: [{
+          label: 'Summa',
+          data: info.data,
+          backgroundColor: chartType === 'line' || chartType === 'radar'
+            ? info.colors.map(c => c + '33') : info.colors,
+          borderColor: info.colors,
+          borderWidth: chartType === 'line' || chartType === 'radar' ? 2 : 1,
+          borderRadius: 4,
+          fill: false,
+          tension: 0.3,
+          pointRadius: 4
+        }]
+      },
+      options: {
+        indexAxis: isHorizontal ? 'y' : 'x',
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: c => ' ' + fmt(isHorizontal ? c.parsed.x : c.parsed.y) } }
+        },
+        scales: chartType === 'radar' ? {
+          r: { beginAtZero: true, ticks: { callback: v => fmtCompact(v), font: { size: 10 } } }
+        } : {
+          [isHorizontal ? 'x' : 'y']: {
+            beginAtZero: true,
+            ticks: { callback: v => fmtCompact(v), font: { size: 10 } }
+          }
+        }
+      }
+    });
+    return;
+  }
+
+  // ==== MULTI (kunlik, oylik, yillik, stacked) ====
+  const isHorizontal = chartType === 'horizontalBar';
+  const realType = isHorizontal ? 'bar' : chartType;
+
+  // Radar faqat bitta dataset bilan yaxshi ishlaydi, lekin multi ham bo'ladi
+  if (realType === 'doughnut' || realType === 'pie' || realType === 'polarArea') {
+    // Multi datasetni pie qilib bo'lmaydi — birinchi datasetni olamiz
+    const ds = info.datasets[0];
+    chart = new Chart(ctx, {
+      type: realType,
+      data: {
+        labels: info.labels,
+        datasets: [{
+          data: ds.data,
+          backgroundColor: info.datasets.map(d => d.color).slice(0, info.labels.length),
+          borderColor: '#fff', borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+          tooltip: { callbacks: { label: c => ' ' + fmt(c.parsed.r || c.parsed) } }
+        }
+      }
+    });
+    return;
+  }
+
+  chart = new Chart(ctx, {
+    type: realType,
+    data: {
+      labels: info.labels,
+      datasets: info.datasets.map(ds => {
+        const isLineLike = realType === 'line' || realType === 'radar';
+        return {
+          label: ds.label,
+          data: ds.data,
+          backgroundColor: isLineLike ? ds.color + '33' : ds.color,
+          borderColor: ds.color,
+          borderWidth: isLineLike ? 2 : 1,
+          borderRadius: realType === 'bar' ? 4 : 0,
+          fill: realType === 'radar' ? true : false,
+          tension: 0.3,
+          pointRadius: 4,
+          pointHoverRadius: 6
+        };
+      })
+    },
+    options: {
+      indexAxis: isHorizontal ? 'y' : 'x',
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } },
+        tooltip: {
+          callbacks: {
+            label: c => ' ' + c.dataset.label + ': ' + fmt(isHorizontal ? c.parsed.x : c.parsed.y)
+          }
+        }
+      },
+      scales: realType === 'radar' ? {
+        r: { beginAtZero: true, ticks: { callback: v => fmtCompact(v), font: { size: 10 } } }
+      } : (realType === 'doughnut' || realType === 'pie' ? {} : {
+        [isHorizontal ? 'x' : 'y']: {
+          stacked: currentTab === 'catMonthly' || currentTab === 'notesMonthly',
+          beginAtZero: true,
+          ticks: { callback: v => fmtCompact(v), font: { size: 10 } }
+        },
+        x: { stacked: currentTab === 'catMonthly' || currentTab === 'notesMonthly' }
+      })
+    }
+  });
+}
+
+// ============ TABLARNI ALMASHTIRISH ============
+function showTab(tab, btn) {
+  currentTab = tab;
+  document.querySelectorAll('#tabBtns button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  updateChartTypeHint();
+  renderChart();
+}
+
+// ============ UMUMIY RENDER ============
+function render() {
+  updateStats();
+  renderCategoryCards();
+  renderNoteAnalysis();
+  renderTable();
+  updateChartTypeHint();
+  renderChart();
+}
+
+// ============ EKRAN O'ZGARGANDA ============
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => { if (chart) chart.resize(); }, 200);
+});
+
+// Boshlash
+setType('expense');
+render();
+</script>
+</body>
+</html>
